@@ -4,19 +4,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-@Testcontainers(parallel=true, disabledWithoutDocker=true)
-class CustomerServiceTest {
+import org.testcontainers.utility.DockerImageName;
 
-  @Container
-  PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
-    "postgres:15-alpine"
-  );
+class CustomerServiceWithoutModuleTest {
+
+  GenericContainer<?> postgres = new GenericContainer<>(
+      DockerImageName.parse("postgres:15-alpine"))
+      .withExposedPorts(5432)
+      .withEnv("POSTGRES_PASSWORD", "password")
+      .withEnv("POSTGRES_USER", "user")
+      .withEnv("POSTGRES_DB", "test");
 
   CustomerService customerService;
 
@@ -25,18 +28,20 @@ class CustomerServiceTest {
   //   postgres.start();
   // }
 
-  // @AfterAll
-  // static void afterAll() {
-  //   postgres.stop();
-  // }
+  @AfterEach
+  void afterAll() {
+    postgres.stop();
+  }
 
   @BeforeEach
   void setUp() {
+    postgres.start();
+
+    String jdbcUrl = "jdbc:postgresql://" + postgres.getHost() + ":" + postgres.getFirstMappedPort() + "/test";
     DBConnectionProvider connectionProvider = new DBConnectionProvider(
-      postgres.getJdbcUrl(),
-      postgres.getUsername(),
-      postgres.getPassword()
-    );
+        jdbcUrl,
+        "user",
+        "password");
     customerService = new CustomerService(connectionProvider);
   }
 
@@ -50,7 +55,7 @@ class CustomerServiceTest {
   }
   @Test
   void shouldGetSingleCustomer() {
-    customerService.createCustomer(new Customer(3L, "Peter"));
+    customerService.createCustomer(new Customer(1L, "Peter"));
 
     List<Customer> customers = customerService.getAllCustomers();
     assertEquals("Peter", customers.get(0).name());

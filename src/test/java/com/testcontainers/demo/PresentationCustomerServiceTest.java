@@ -10,33 +10,34 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
 @Testcontainers(parallel=true, disabledWithoutDocker=true)
-class CustomerServiceTest {
+class PresentationCustomerServiceTest {
 
   @Container
   PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
-    "postgres:15-alpine"
-  );
+    "postgres:15-alpine")
+    .withUsername("user")
+    .withPassword("password");
 
   CustomerService customerService;
 
   // @BeforeAll
   // static void beforeAll() {
-  //   postgres.start();
+  // postgres.start();
   // }
 
   // @AfterAll
   // static void afterAll() {
-  //   postgres.stop();
+  // postgres.stop();
   // }
 
   @BeforeEach
   void setUp() {
     DBConnectionProvider connectionProvider = new DBConnectionProvider(
-      postgres.getJdbcUrl(),
-      postgres.getUsername(),
-      postgres.getPassword()
-    );
+        postgres.getJdbcUrl(),
+        postgres.getUsername(),
+        postgres.getPassword());
     customerService = new CustomerService(connectionProvider);
   }
 
@@ -48,6 +49,7 @@ class CustomerServiceTest {
     List<Customer> customers = customerService.getAllCustomers();
     assertEquals(2, customers.size());
   }
+  
   @Test
   void shouldGetSingleCustomer() {
     customerService.createCustomer(new Customer(3L, "Peter"));
@@ -55,4 +57,5 @@ class CustomerServiceTest {
     List<Customer> customers = customerService.getAllCustomers();
     assertEquals("Peter", customers.get(0).name());
   }
+
 }
